@@ -15,7 +15,7 @@ const StatCard = ({ title, amount, icon, type = 'neutral' }) => {
     <div className="card flex items-start justify-between">
       <div>
         <h3 className="text-sm font-medium text-secondary mb-2">{title}</h3>
-        <p className="text-2xl font-bold text-primary">
+        <p className="text-2xl font-bold text-primary tabular-nums">
           {formatCurrency(amount)}
         </p>
       </div>

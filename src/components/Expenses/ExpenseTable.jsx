@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle, HelpCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, HelpCircle, ChevronRight } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
 /**
@@ -34,14 +34,15 @@ const ExpenseTable = ({ expenses, showType = true }) => {
             {showType && <th>Tipo</th>}
             <th>Monto</th>
             <th>Estado IA</th>
+            <th className="w-8"></th> {/* Columna vacía para el icono hover */}
           </tr>
         </thead>
         <tbody>
           {/* Mapeo de gastos para crear filas */}
-          {expenses.map(expense => (
+          {expenses.map((expense, index) => (
             <tr 
               key={expense.id} 
-              className="cursor-pointer"
+              className={`cursor-pointer animate-slide-up delay-${(index % 4 + 1) * 100}`}
               // Navegar al detalle del gasto al hacer clic en la fila
               onClick={() => navigate(`/gastos/${expense.id}`)}
             >
@@ -67,7 +68,7 @@ const ExpenseTable = ({ expenses, showType = true }) => {
                 </td>
               )}
 
-              <td data-label="Monto" className="font-semibold text-primary">
+              <td data-label="Monto" className="font-semibold text-primary tabular-nums">
                 {formatCurrency(expense.amount)}
               </td>
               <td data-label="Estado">
@@ -85,6 +86,11 @@ const ExpenseTable = ({ expenses, showType = true }) => {
                     <span className="text-xs text-muted">Confianza: {expense.confidence}</span>
                   )}
                 </div>
+              </td>
+              
+              {/* Icono de chevron visible solo en hover */}
+              <td className="text-right">
+                <ChevronRight size={18} className="hover-reveal-icon text-muted" />
               </td>
             </tr>
           ))}

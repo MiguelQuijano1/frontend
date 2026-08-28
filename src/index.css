@@ -18,9 +18,9 @@
 
   --border-color: #e2e8f0;
   
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 12px 32px -4px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.12);
 }
 
 .dark {
@@ -38,9 +38,9 @@
   
   --border-color: #334155;
   
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+  --shadow-sm: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 12px 32px -4px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -172,6 +172,8 @@ button {
 .text-lg { font-size: 1.125rem; }
 .text-xl { font-size: 1.25rem; }
 .text-2xl { font-size: 1.5rem; }
+.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
 .text-3xl { font-size: 2rem; }
 
 .font-medium { font-weight: 500; }
@@ -240,4 +242,53 @@ button {
     color: var(--text-muted);
     margin-right: 1rem;
   }
+}
+
+/* Animations */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUpFade 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+
+/* Micro-interacciones para Tablas */
+.table tbody tr {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.table tbody tr:hover {
+  background-color: var(--bg-tertiary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  z-index: 1;
+}
+
+.hover-reveal-icon {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.2s ease;
+}
+
+.table tbody tr:hover .hover-reveal-icon {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.icon-spin-in {
+  animation: spinIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes spinIn {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+  to { opacity: 1; transform: rotate(0) scale(1); }
 }
