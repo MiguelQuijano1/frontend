@@ -4,6 +4,7 @@ import { summaryMock, expensesMock } from '../../mocks/expensesData';
 import { Link } from 'react-router-dom';
 import StatCard from '../../components/Dashboard/StatCard';
 import ExpenseTable from '../../components/Expenses/ExpenseTable';
+import ExpensesChart from '../../components/Dashboard/ExpensesChart';
 import { formatCurrency } from '../../utils/formatters';
 
 const Dashboard = () => {
@@ -23,21 +24,31 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* SECCIÓN 2: Resumen por Tipos (Empresa vs Personal) */}
-      <section className="grid grid-cols-summary gap-6">
-        <div className="card">
-           <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-             <Briefcase size={20} color="var(--accent-primary)" />
-             Gastos Empresa
-           </h3>
-           <p className="text-3xl font-bold">{formatCurrency(summaryMock.company)}</p>
+      {/* SECCIÓN 2: Distribución y Resumen por Tipos (Empresa vs Personal) */}
+      <section className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+        
+        {/* Gráfico Interactivo */}
+        <div className="card flex flex-col items-center justify-center p-6">
+          <h3 className="text-lg font-medium mb-2 w-full text-left">Distribución de Gastos</h3>
+          <ExpensesChart companyTotal={summaryMock.company} personalTotal={summaryMock.personal} />
         </div>
-        <div className="card">
-           <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-             <User size={20} color="var(--accent-secondary)" />
-             Gastos Personales
-           </h3>
-           <p className="text-3xl font-bold">{formatCurrency(summaryMock.personal)}</p>
+
+        {/* Tarjetas Descriptivas */}
+        <div className="flex flex-col gap-6 justify-center">
+          <div className="card">
+             <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+               <Briefcase size={20} color="var(--accent-primary)" />
+               Gastos Empresa
+             </h3>
+             <p className="text-3xl font-bold">{formatCurrency(summaryMock.company)}</p>
+          </div>
+          <div className="card">
+             <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+               <User size={20} color="var(--accent-secondary)" />
+               Gastos Personales
+             </h3>
+             <p className="text-3xl font-bold">{formatCurrency(summaryMock.personal)}</p>
+          </div>
         </div>
       </section>
 

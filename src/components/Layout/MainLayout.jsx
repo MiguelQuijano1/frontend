@@ -48,7 +48,11 @@ const MainLayout = () => {
 
           <div className="topbar-actions">
             <button className="btn-icon" onClick={toggleTheme} aria-label="Cambiar tema">
-              {isDark ? <Sun size={20} color="var(--text-secondary)" /> : <Moon size={20} color="var(--text-secondary)" />}
+              {isDark ? (
+                <Sun key="sun" size={20} className="icon-spin-in text-secondary" />
+              ) : (
+                <Moon key="moon" size={20} className="icon-spin-in text-secondary" />
+              )}
             </button>
             <button className="btn-icon" aria-label="Notificaciones">
               <Bell size={20} color="var(--text-secondary)" />
