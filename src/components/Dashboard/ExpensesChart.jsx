@@ -9,31 +9,20 @@ import {
 } from 'recharts';
 import { formatCurrency } from '../../utils/formatters';
 
-/**
- * Componente ExpensesChart
- * Muestra un gráfico de dona con la distribución de gastos de Empresa vs Personales.
- * Usa Recharts para el renderizado interactivo.
- * 
- * @param {number} companyTotal - Total de gastos de empresa.
- * @param {number} personalTotal - Total de gastos personales.
- */
 const ExpensesChart = ({ companyTotal, personalTotal }) => {
-  // Datos para alimentar el gráfico
   const data = [
     { name: 'Gastos Empresa', value: companyTotal },
     { name: 'Gastos Personales', value: personalTotal },
   ];
 
-  // Colores (Coinciden con var(--accent-primary) y var(--accent-secondary))
-  const COLORS = ['#3b82f6', '#10b981'];
+  const COLORS = ['#A9762F', '#1F7A5C'];
 
-  // Tooltip personalizado para formatear el número como Moneda (Soles)
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="card p-3 shadow-lg border-0 bg-secondary" style={{ zIndex: 100 }}>
-          <p className="text-sm font-medium mb-1">{payload[0].name}</p>
-          <p className="text-lg font-bold text-primary">
+        <div className="card" style={{ padding: '0.75rem 1rem' }}>
+          <p className="text-sm font-medium text-secondary mb-2">{payload[0].name}</p>
+          <p className="text-lg font-bold text-primary font-mono">
             {formatCurrency(payload[0].value)}
           </p>
         </div>
@@ -58,10 +47,10 @@ const ExpensesChart = ({ companyTotal, personalTotal }) => {
             animationDuration={800}
           >
             {data.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={COLORS[index % COLORS.length]} 
-                style={{ outline: 'none' }} 
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
+                style={{ outline: 'none' }}
               />
             ))}
           </Pie>

@@ -13,7 +13,7 @@
  */
 export const formatCurrency = (amount) => {
   if (amount === undefined || amount === null) return 'S/ 0.00';
-  
+
   // Usamos Intl.NumberFormat para formatear con separadores de miles y decimales
   return new Intl.NumberFormat('es-PE', {
     style: 'currency',
@@ -36,3 +36,9 @@ export const formatDate = (dateString) => {
     year: 'numeric'
   });
 };
+export const formatConfidence = (level) => {
+  const map = { Alta: 'Alta confianza', Media: 'Confianza media', Baja: 'Confianza baja' };
+  return map[level] || level;
+};
+
+export const formatRole = (role) => role; // placeholder por si luego se traduce/normaliza

@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingUp, DollarSign, Briefcase, User } from 'lucide-react';
-import { summaryMock, expensesMock } from '../../mocks/expensesData';
+import { summaryMock, expensesMock, categoriesMock, providersMock } from '../../mocks/expensesData';
 import { Link } from 'react-router-dom';
 import StatCard from '../../components/Dashboard/StatCard';
 import ExpenseTable from '../../components/Expenses/ExpenseTable';
@@ -8,58 +8,79 @@ import ExpensesChart from '../../components/Dashboard/ExpensesChart';
 import { formatCurrency } from '../../utils/formatters';
 
 const Dashboard = () => {
-  // Tomamos solo los 5 gastos más recientes para el resumen
   const recentExpenses = expensesMock.slice(0, 5);
+
+  const topCategories = [...categoriesMock].sort((a, b) => b.expenseCount - a.expenseCount).slice(0, 4);
+  const topProviders = [...providersMock].sort((a, b) => b.timesUsed - a.timesUsed).slice(0, 4);
 
   return (
     <div className="flex flex-col gap-8">
-      
-      {/* SECCIÓN 1: Tarjetas de Resumen General */}
+
       <section>
-        <h2 className="text-xl font-semibold mb-4">Resumen General</h2>
+        <p className="eyebrow mb-2">Vista general</p>
+        <h2 className="text-xl mb-4">Resumen General</h2>
         <div className="grid grid-cols-stats gap-6">
-          <StatCard title="Gastos Hoy" amount={summaryMock.today} icon={<TrendingUp size={24} />} type="success" />
-          <StatCard title="Gastos esta Semana" amount={summaryMock.week} icon={<DollarSign size={24} />} type="primary" />
-          <StatCard title="Gastos del Mes" amount={summaryMock.month} icon={<DollarSign size={24} />} />
+          <StatCard title="Gastos Hoy" amount={summaryMock.today} icon={<TrendingUp size={22} />} type="success" />
+          <StatCard title="Gastos esta Semana" amount={summaryMock.week} icon={<DollarSign size={22} />} type="primary" />
+          <StatCard title="Gastos del Mes" amount={summaryMock.month} icon={<DollarSign size={22} />} />
         </div>
       </section>
 
-      {/* SECCIÓN 2: Distribución y Resumen por Tipos (Empresa vs Personal) */}
       <section className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-        
-        {/* Gráfico Interactivo */}
         <div className="card flex flex-col items-center justify-center p-6">
-          <h3 className="text-lg font-medium mb-2 w-full text-left">Distribución de Gastos</h3>
+          <h3 className="text-lg mb-2 w-full text-left">Distribución de Gastos</h3>
           <ExpensesChart companyTotal={summaryMock.company} personalTotal={summaryMock.personal} />
         </div>
 
-        {/* Tarjetas Descriptivas */}
         <div className="flex flex-col gap-6 justify-center">
-          <div className="card">
-             <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-               <Briefcase size={20} color="var(--accent-primary)" />
-               Gastos Empresa
-             </h3>
-             <p className="text-3xl font-bold">{formatCurrency(summaryMock.company)}</p>
+          <div className="card flex items-center gap-4">
+            <div className="icon-badge icon-badge-info"><Briefcase size={22} /></div>
+            <div>
+              <h3 className="text-sm font-medium text-secondary mb-1">Gastos Empresa</h3>
+              <p className="text-2xl font-bold font-mono">{formatCurrency(summaryMock.company)}</p>
+            </div>
           </div>
-          <div className="card">
-             <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-               <User size={20} color="var(--accent-secondary)" />
-               Gastos Personales
-             </h3>
-             <p className="text-3xl font-bold">{formatCurrency(summaryMock.personal)}</p>
+          <div className="card flex items-center gap-4">
+            <div className="icon-badge icon-badge-success"><User size={22} /></div>
+            <div>
+              <h3 className="text-sm font-medium text-secondary mb-1">Gastos Personales</h3>
+              <p className="text-2xl font-bold font-mono">{formatCurrency(summaryMock.personal)}</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* SECCIÓN 3: Tabla de Gastos Recientes (Componente Reutilizado) */}
-      <section className="card p-0 overflow-hidden">
-        <div className="flex justify-between items-center p-6 border-b border-color">
-          <h2 className="text-xl font-semibold">Gastos Recientes</h2>
-          <Link to="/gastos" className="btn btn-outline text-sm py-1 px-3">Ver todos</Link>
+      {/* Desglose por categoría y proveedor */}
+      <section className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+        <div className="card">
+          <h3 className="text-lg font-semibold mb-4">Top Categorías</h3>
+          <div className="flex flex-col gap-3">
+            {topCategories.map(c => (
+              <div key={c.id} className="flex justify-between items-center">
+                <span className="text-sm text-secondary">{c.name}</span>
+                <span className="badge badge-neutral">{c.expenseCount} gastos</span>
+              </div>
+            ))}
+          </div>
         </div>
-        
-        {/* Usamos el nuevo componente compartido de tabla */}
+        <div className="card">
+          <h3 className="text-lg font-semibold mb-4">Top Proveedores</h3>
+          <div className="flex flex-col gap-3">
+            {topProviders.map(p => (
+              <Link key={p.id} to={`/proveedores/${p.id}`} className="flex justify-between items-center">
+                <span className="text-sm text-secondary">{p.name}</span>
+                <span className="badge badge-info">{p.timesUsed} veces</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card p-0 overflow-hidden">
+        <div className="flex justify-between items-center" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+          <h2 className="text-xl">Gastos Recientes</h2>
+          <Link to="/gastos" className="btn btn-outline text-sm" style={{ padding: '0.4rem 0.9rem' }}>Ver todos</Link>
+        </div>
         <ExpenseTable expenses={recentExpenses} showType={true} />
       </section>
 

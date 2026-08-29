@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { User, Bell, Sun, Moon, Menu } from 'lucide-react';
+import { Bell, Sun, Moon, Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import './Layout.css';
 import { useTheme } from '../../context/ThemeContext';
@@ -9,7 +9,7 @@ const MainLayout = () => {
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
+
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/': return 'Dashboard';
@@ -24,11 +24,10 @@ const MainLayout = () => {
   return (
     <div className="main-layout">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      
-      {/* Overlay for mobile sidebar */}
+
       {isSidebarOpen && (
-        <div 
-          className="sidebar-overlay" 
+        <div
+          className="sidebar-overlay"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -36,12 +35,12 @@ const MainLayout = () => {
       <div className="content-wrapper">
         <header className="topbar">
           <div className="flex items-center gap-4">
-            <button 
-              className="btn-icon mobile-menu-btn" 
+            <button
+              className="btn-icon mobile-menu-btn"
               onClick={() => setIsSidebarOpen(true)}
               aria-label="Abrir menú"
             >
-              <Menu size={24} color="var(--text-primary)" />
+              <Menu size={22} color="var(--text-primary)" />
             </button>
             <div className="topbar-title">{getPageTitle()}</div>
           </div>
@@ -49,18 +48,16 @@ const MainLayout = () => {
           <div className="topbar-actions">
             <button className="btn-icon" onClick={toggleTheme} aria-label="Cambiar tema">
               {isDark ? (
-                <Sun key="sun" size={20} className="icon-spin-in text-secondary" />
+                <Sun key="sun" size={19} className="icon-spin-in text-secondary" />
               ) : (
-                <Moon key="moon" size={20} className="icon-spin-in text-secondary" />
+                <Moon key="moon" size={19} className="icon-spin-in text-secondary" />
               )}
             </button>
             <button className="btn-icon" aria-label="Notificaciones">
-              <Bell size={20} color="var(--text-secondary)" />
+              <Bell size={19} color="var(--text-secondary)" />
             </button>
             <div className="user-profile flex items-center gap-2 cursor-pointer">
-              <div className="avatar flex items-center justify-center">
-                <User size={18} />
-              </div>
+              <div className="avatar flex items-center justify-center">A</div>
               <span className="font-medium text-sm hidden-sm">Admin</span>
             </div>
           </div>
