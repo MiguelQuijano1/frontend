@@ -1,12 +1,30 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { login } = useAuth();
 
-    const handleSubmit = (e) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [enviando, setEnviando] = useState(false);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        navigate('/');
+        setError('');
+        setEnviando(true);
+        try {
+            await login(email, password);
+            const destino = location.state?.from?.pathname || '/';
+            navigate(destino, { replace: true });
+        } catch (err) {
+            setError(err.message || 'No se pudo iniciar sesión');
+        } finally {
+            setEnviando(false);
+        }
     };
 
     return (
@@ -21,14 +39,35 @@ const Login = () => {
                 <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
                     <div>
                         <label className="form-label">Correo</label>
-                        <input type="email" className="input-field" placeholder="tucorreo@suregg.com" required />
+                        <input
+                            type="email"
+                            className="input-field"
+                            placeholder="tucorreo@suregg.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
                     </div>
                     <div>
                         <label className="form-label">Contraseña</label>
-                        <input type="password" className="input-field" placeholder="••••••••" required />
+                        <input
+                            type="password"
+                            className="input-field"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
                     </div>
-                    <button type="submit" className="btn btn-primary w-full" style={{ marginTop: '0.5rem' }}>
-                        Ingresar
+
+                    {error && (
+                        <p className="text-sm" style={{ color: 'var(--danger, #e11d48)' }}>
+                            {error}
+                        </p>
+                    )}
+
+                    <button type="submit" className="btn btn-primary w-full" style={{ marginTop: '0.5rem' }} disabled={enviando}>
+                        {enviando ? 'Ingresando…' : 'Ingresar'}
                     </button>
                 </form>
             </div>

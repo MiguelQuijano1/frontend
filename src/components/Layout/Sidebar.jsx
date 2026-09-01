@@ -1,15 +1,24 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Receipt, ClipboardCheck, Copy,
-  Building2, FolderKanban, Tags, Users, Settings, LogOut, X
+  Building2, FolderKanban, Tags, Settings, LogOut, X
 } from 'lucide-react';
 import { expensesMock, duplicatesMock } from '../../mocks/expensesData';
+import { useAuth } from '../../context/AuthContext';
 import './Layout.css';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const pendingReview = expensesMock.filter(e => e.status === 'Requiere Revisión').length;
   const pendingDuplicates = duplicatesMock.length;
+
+  const handleLogout = () => {
+    setIsOpen(false);
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   const NavItem = ({ to, icon, label, badge, end = false }) => (
     <NavLink
@@ -47,12 +56,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         <NavItem to="/proveedores" icon={<Building2 size={19} />} label="Proveedores" />
         <NavItem to="/proyectos" icon={<FolderKanban size={19} />} label="Proyectos" />
         <NavItem to="/categorias" icon={<Tags size={19} />} label="Categorías" />
-        <NavItem to="/usuarios" icon={<Users size={19} />} label="Usuarios" />
       </nav>
 
       <div className="sidebar-footer flex-col gap-2">
         <NavItem to="/configuracion" icon={<Settings size={19} />} label="Configuración" />
-        <button className="nav-item w-full flex items-center gap-2 bg-transparent">
+        <button className="nav-item w-full flex items-center gap-2 bg-transparent" onClick={handleLogout}>
           <LogOut size={19} />
           <span>Cerrar Sesión</span>
         </button>
