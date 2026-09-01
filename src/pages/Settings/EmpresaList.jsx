@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Building2 } from 'lucide-react';
+import { Building2, Pencil, Trash2, Check, X } from 'lucide-react';
 import { apiFetch } from '../../utils/api';
 
 // Solo se llega a esta página si esSuperAdmin (ver SettingsSidebar y App.jsx).
@@ -11,6 +11,8 @@ const EmpresaList = () => {
     const [error, setError] = useState('');
     const [nombreNueva, setNombreNueva] = useState('');
     const [creando, setCreando] = useState(false);
+    const [editandoId, setEditandoId] = useState(null);
+    const [nombreEdit, setNombreEdit] = useState('');
 
     const cargar = () => {
         setCargando(true);
@@ -38,6 +40,54 @@ const EmpresaList = () => {
             setError(err.message);
         } finally {
             setCreando(false);
+        }
+    };
+
+    const iniciarEdicion = (empresa) => {
+        setEditandoId(empresa.id);
+        setNombreEdit(empresa.nombre);
+    };
+
+    const guardarEdicion = async (id) => {
+        if (!nombreEdit.trim()) return;
+        setError('');
+        try {
+            await apiFetch(`/empresas/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ nombre: nombreEdit.trim() }),
+            });
+            setEditandoId(null);
+            cargar();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const alternarActiva = async (empresa) => {
+        setError('');
+        try {
+            await apiFetch(`/empresas/${empresa.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ activa: !empresa.activa }),
+            });
+            cargar();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const eliminarEmpresa = async (empresa) => {
+        const ok = window.confirm(
+            `¿Eliminar "${empresa.nombre}"? Esta acción no se puede deshacer. Si tiene usuarios o gastos asociados, no se podrá eliminar y deberás desactivarla en su lugar.`,
+        );
+        if (!ok) return;
+
+        setError('');
+        try {
+            await apiFetch(`/empresas/${empresa.id}`, { method: 'DELETE' });
+            cargar();
+        } catch (err) {
+            setError(err.message);
         }
     };
 
@@ -74,24 +124,61 @@ const EmpresaList = () => {
                         <tr>
                             <th>Empresa</th>
                             <th>Estado</th>
+                            <th style={{ width: 110 }}></th>
                         </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
-                            <tr><td colSpan={2} className="text-secondary text-center">Cargando…</td></tr>
+                            <tr><td colSpan={3} className="text-secondary text-center">Cargando…</td></tr>
                         ) : empresas.length === 0 ? (
-                            <tr><td colSpan={2} className="text-secondary text-center">No hay empresas registradas</td></tr>
+                            <tr><td colSpan={3} className="text-secondary text-center">No hay empresas registradas</td></tr>
                         ) : (
                             empresas.map((emp) => (
                                 <tr key={emp.id}>
-                                    <td className="font-medium flex items-center gap-2">
-                                        <Building2 size={16} className="text-secondary" />
-                                        {emp.nombre}
+                                    <td className="font-medium">
+                                        {editandoId === emp.id ? (
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    className="input-field"
+                                                    value={nombreEdit}
+                                                    onChange={(e) => setNombreEdit(e.target.value)}
+                                                    autoFocus
+                                                />
+                                                <button className="btn-icon" onClick={() => guardarEdicion(emp.id)} aria-label="Guardar">
+                                                    <Check size={17} />
+                                                </button>
+                                                <button className="btn-icon" onClick={() => setEditandoId(null)} aria-label="Cancelar">
+                                                    <X size={17} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span className="flex items-center gap-2">
+                                                <Building2 size={16} className="text-secondary" />
+                                                {emp.nombre}
+                                            </span>
+                                        )}
                                     </td>
                                     <td>
-                                        <span className={`badge ${emp.activa ? 'badge-success' : 'badge-danger'}`}>
+                                        <button
+                                            className={`badge ${emp.activa ? 'badge-success' : 'badge-danger'}`}
+                                            style={{ cursor: 'pointer', border: 'none' }}
+                                            onClick={() => alternarActiva(emp)}
+                                            title="Click para cambiar estado"
+                                        >
                                             {emp.activa ? 'Activa' : 'Inactiva'}
-                                        </span>
+                                        </button>
+                                    </td>
+                                    <td>
+                                        {editandoId !== emp.id && (
+                                            <div className="flex items-center gap-2 justify-end">
+                                                <button className="btn-icon" onClick={() => iniciarEdicion(emp)} aria-label="Editar">
+                                                    <Pencil size={16} />
+                                                </button>
+                                                <button className="btn-icon" onClick={() => eliminarEmpresa(emp)} aria-label="Eliminar">
+                                                    <Trash2 size={16} color="var(--danger, #e11d48)" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
                             ))
