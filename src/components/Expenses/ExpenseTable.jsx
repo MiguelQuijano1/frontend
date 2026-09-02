@@ -42,7 +42,7 @@ const ExpenseTable = ({ expenses, showType = true }) => {
               <td data-label="Detalle">
                 <div className="font-medium">{expense.provider}</div>
                 <div className="text-sm text-secondary">
-                  {expense.category} {expense.project ? `• ${expense.project}` : ''}
+                  {expense.category || 'Sin categoría'} {expense.project ? `• ${expense.project}` : ''}
                 </div>
               </td>
 
@@ -60,8 +60,8 @@ const ExpenseTable = ({ expenses, showType = true }) => {
               <td data-label="Estado">
                 <div className="flex items-center gap-2">
                   <span className={`badge ${expense.status === 'Aprobado' ? 'badge-success' :
-                      expense.status === 'Requiere Revisión' ? 'badge-warning' :
-                        'badge-danger'
+                    expense.status === 'Requiere Revisión' ? 'badge-warning' :
+                      'badge-danger'
                     } gap-1`}>
                     {getStatusIcon(expense.status)}
                     {expense.status}

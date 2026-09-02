@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 
-const ExpenseFilterBar = ({ filter, setFilter }) => {
+const ExpenseFilterBar = ({ filter, setFilter, search, setSearch }) => {
   const filterOptions = ['Todos', 'Empresa', 'Personal', 'Requiere Revisión', 'Posible Duplicado', 'Sin Comprobante'];
 
   return (
@@ -20,7 +20,14 @@ const ExpenseFilterBar = ({ filter, setFilter }) => {
 
       <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
         <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-        <input type="text" placeholder="Buscar proveedor o categoría..." className="input-field" style={{ paddingLeft: '2.5rem' }} />
+        <input
+          type="text"
+          placeholder="Buscar proveedor o categoría..."
+          className="input-field"
+          style={{ paddingLeft: '2.5rem' }}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
     </div>
   );

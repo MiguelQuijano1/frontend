@@ -122,71 +122,73 @@ const UserList = () => {
             )}
 
             <div className="card p-0 overflow-hidden">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Correo</th>
-                            <th>Telegram</th>
-                            <th>Rol</th>
-                            {esSuperAdmin && <th>Empresa</th>}
-                            <th>Activo</th>
-                            <th style={{ width: 90 }}></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {cargando ? (
-                            <tr><td colSpan={esSuperAdmin ? 7 : 6} className="text-secondary text-center">Cargando…</td></tr>
-                        ) : usuarios.length === 0 ? (
-                            <tr><td colSpan={esSuperAdmin ? 7 : 6} className="text-secondary text-center">No hay usuarios registrados</td></tr>
-                        ) : (
-                            usuarios.map((u) => (
-                                <tr key={u.id}>
-                                    <td className="font-medium">{u.nombre || '—'}</td>
-                                    <td className="text-secondary">{u.email || '—'}</td>
-                                    <td>
-                                        {u.telegram_id ? (
-                                            <span className="badge badge-success" title={`ID: ${u.telegram_id}`}>Vinculado</span>
-                                        ) : (
-                                            <span className="badge badge-neutral">Sin vincular</span>
-                                        )}
-                                    </td>
-                                    <td><span className={`badge ${roleColor[u.rol] || 'badge-neutral'}`}>{roleLabel[u.rol] || u.rol}</span></td>
-                                    {esSuperAdmin && (
-                                        <td className="text-secondary">
-                                            {u.rol === 'super_admin' ? 'Todas' : (nombreEmpresa(u.empresa_id) || '—')}
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="table responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Correo</th>
+                                <th>Telegram</th>
+                                <th>Rol</th>
+                                {esSuperAdmin && <th>Empresa</th>}
+                                <th>Activo</th>
+                                <th style={{ width: 90 }}></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {cargando ? (
+                                <tr><td colSpan={esSuperAdmin ? 7 : 6} className="text-secondary text-center">Cargando…</td></tr>
+                            ) : usuarios.length === 0 ? (
+                                <tr><td colSpan={esSuperAdmin ? 7 : 6} className="text-secondary text-center">No hay usuarios registrados</td></tr>
+                            ) : (
+                                usuarios.map((u) => (
+                                    <tr key={u.id}>
+                                        <td className="font-medium" data-label="Nombre">{u.nombre || '—'}</td>
+                                        <td className="text-secondary" data-label="Correo">{u.email || '—'}</td>
+                                        <td data-label="Telegram">
+                                            {u.telegram_id ? (
+                                                <span className="badge badge-success" title={`ID: ${u.telegram_id}`}>Vinculado</span>
+                                            ) : (
+                                                <span className="badge badge-neutral">Sin vincular</span>
+                                            )}
                                         </td>
-                                    )}
-                                    <td>
-                                        <Switch
-                                            checked={u.activo}
-                                            onChange={(nuevoValor) => cambiarActivo(u, nuevoValor)}
-                                            disabled={u.id === usuarioActual?.id}
-                                            ariaLabel={`Usuario ${u.nombre || u.email} activo`}
-                                        />
-                                    </td>
-                                    <td>
-                                        <div className="flex items-center gap-2 justify-end">
-                                            <button
-                                                className="btn-icon"
-                                                onClick={() => {
-                                                    setMostrarForm(false);
-                                                    setEditando(u);
-                                                }}
-                                                aria-label="Editar"
-                                            >
-                                                <Pencil size={16} />
-                                            </button>
-                                            <button className="btn-icon" onClick={() => eliminarUsuario(u)} aria-label="Eliminar">
-                                                <Trash2 size={16} color="var(--danger, #e11d48)" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                                        <td data-label="Rol"><span className={`badge ${roleColor[u.rol] || 'badge-neutral'}`}>{roleLabel[u.rol] || u.rol}</span></td>
+                                        {esSuperAdmin && (
+                                            <td className="text-secondary" data-label="Empresa">
+                                                {u.rol === 'super_admin' ? 'Todas' : (nombreEmpresa(u.empresa_id) || '—')}
+                                            </td>
+                                        )}
+                                        <td data-label="Activo">
+                                            <Switch
+                                                checked={u.activo}
+                                                onChange={(nuevoValor) => cambiarActivo(u, nuevoValor)}
+                                                disabled={u.id === usuarioActual?.id}
+                                                ariaLabel={`Usuario ${u.nombre || u.email} activo`}
+                                            />
+                                        </td>
+                                        <td data-label="">
+                                            <div className="flex items-center gap-2 justify-end">
+                                                <button
+                                                    className="btn-icon"
+                                                    onClick={() => {
+                                                        setMostrarForm(false);
+                                                        setEditando(u);
+                                                    }}
+                                                    aria-label="Editar"
+                                                >
+                                                    <Pencil size={16} />
+                                                </button>
+                                                <button className="btn-icon" onClick={() => eliminarUsuario(u)} aria-label="Eliminar">
+                                                    <Trash2 size={16} color="var(--danger, #e11d48)" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
@@ -255,6 +257,11 @@ const UsuarioForm = ({ esSuperAdmin, empresas, usuario, esUsuarioActual, onGuard
                     <X size={18} />
                 </button>
             </div>
+            {esEdicion && esUsuarioActual && (
+                <p className="text-xs text-secondary mb-4">
+                    Por seguridad, no puedes cambiar tu propio rol ni desactivar tu cuenta. Pídele a otro administrador que lo haga si hace falta.
+                </p>
+            )}
             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
                 <div>
                     <label className="form-label">Nombre</label>
@@ -289,24 +296,19 @@ const UsuarioForm = ({ esSuperAdmin, empresas, usuario, esUsuarioActual, onGuard
                         Sin este dato, el usuario puede entrar al panel web pero el bot de Telegram no le va a responder.
                     </p>
                 </div>
-                <div>
-                    <label className="form-label">Rol</label>
-                    <select
-                        className="input-field"
-                        value={rol}
-                        onChange={(e) => setRol(e.target.value)}
-                        disabled={esUsuarioActual}
-                    >
-                        <option value="empleado">Empleado</option>
-                        <option value="admin">Administrador</option>
-                        {esSuperAdmin && <option value="super_admin">Super Admin</option>}
-                    </select>
-                    {esUsuarioActual && (
-                        <p className="text-xs text-secondary mt-1">
-                            No puedes cambiar tu propio rol. Pídele a otro administrador que lo haga.
-                        </p>
-                    )}
-                </div>
+                {/* Rol: oculto por completo si te estás editando a ti mismo
+                    (nadie puede cambiar su propio rol, sin importar cuál
+                    sea -- ver la protección espejo en el backend). */}
+                {!esUsuarioActual && (
+                    <div>
+                        <label className="form-label">Rol</label>
+                        <select className="input-field" value={rol} onChange={(e) => setRol(e.target.value)}>
+                            <option value="empleado">Empleado</option>
+                            <option value="admin">Administrador</option>
+                            {esSuperAdmin && <option value="super_admin">Super Admin</option>}
+                        </select>
+                    </div>
+                )}
 
                 {/* Solo super_admin elige la empresa: un admin normal siempre
                     crea/edita dentro de la suya (el backend la fuerza). Un
@@ -324,21 +326,14 @@ const UsuarioForm = ({ esSuperAdmin, empresas, usuario, esUsuarioActual, onGuard
                     </div>
                 )}
 
-                {esEdicion && (
+                {/* Activo: oculto por completo al editarte a ti mismo, mismo
+                    criterio que Rol de arriba -- nadie puede desactivarse a
+                    sí mismo. */}
+                {esEdicion && !esUsuarioActual && (
                     <div className="flex items-center gap-3">
-                        <Switch
-                            checked={activo}
-                            onChange={setActivo}
-                            disabled={esUsuarioActual}
-                            ariaLabel="Usuario activo"
-                        />
+                        <Switch checked={activo} onChange={setActivo} ariaLabel="Usuario activo" />
                         <span className="text-sm">Usuario activo</span>
                     </div>
-                )}
-                {esEdicion && esUsuarioActual && (
-                    <p className="text-xs text-secondary" style={{ marginTop: -8 }}>
-                        No puedes desactivar tu propio usuario.
-                    </p>
                 )}
 
                 {error && <p className="text-sm" style={{ color: 'var(--danger, #e11d48)' }}>{error}</p>}
