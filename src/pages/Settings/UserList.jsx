@@ -103,6 +103,7 @@ const UserList = () => {
                         esSuperAdmin={esSuperAdmin}
                         empresas={empresas}
                         usuario={editando}
+                        esUsuarioActual={editando?.id === usuarioActual?.id}
                         onGuardado={() => {
                             setMostrarForm(false);
                             setEditando(null);
@@ -126,6 +127,7 @@ const UserList = () => {
                         <tr>
                             <th>Nombre</th>
                             <th>Correo</th>
+                            <th>Telegram</th>
                             <th>Rol</th>
                             {esSuperAdmin && <th>Empresa</th>}
                             <th>Activo</th>
@@ -134,14 +136,21 @@ const UserList = () => {
                     </thead>
                     <tbody>
                         {cargando ? (
-                            <tr><td colSpan={esSuperAdmin ? 6 : 5} className="text-secondary text-center">Cargando…</td></tr>
+                            <tr><td colSpan={esSuperAdmin ? 7 : 6} className="text-secondary text-center">Cargando…</td></tr>
                         ) : usuarios.length === 0 ? (
-                            <tr><td colSpan={esSuperAdmin ? 6 : 5} className="text-secondary text-center">No hay usuarios registrados</td></tr>
+                            <tr><td colSpan={esSuperAdmin ? 7 : 6} className="text-secondary text-center">No hay usuarios registrados</td></tr>
                         ) : (
                             usuarios.map((u) => (
                                 <tr key={u.id}>
                                     <td className="font-medium">{u.nombre || '—'}</td>
                                     <td className="text-secondary">{u.email || '—'}</td>
+                                    <td>
+                                        {u.telegram_id ? (
+                                            <span className="badge badge-success" title={`ID: ${u.telegram_id}`}>Vinculado</span>
+                                        ) : (
+                                            <span className="badge badge-neutral">Sin vincular</span>
+                                        )}
+                                    </td>
                                     <td><span className={`badge ${roleColor[u.rol] || 'badge-neutral'}`}>{roleLabel[u.rol] || u.rol}</span></td>
                                     {esSuperAdmin && (
                                         <td className="text-secondary">
@@ -152,6 +161,7 @@ const UserList = () => {
                                         <Switch
                                             checked={u.activo}
                                             onChange={(nuevoValor) => cambiarActivo(u, nuevoValor)}
+                                            disabled={u.id === usuarioActual?.id}
                                             ariaLabel={`Usuario ${u.nombre || u.email} activo`}
                                         />
                                     </td>
@@ -187,11 +197,12 @@ const UserList = () => {
 // propia empresa (el backend lo re-valida igual, forzando su empresa_id);
 // un super_admin además puede otorgar el rol super_admin y elegir a qué
 // empresa asignar el nuevo admin/empleado.
-const UsuarioForm = ({ esSuperAdmin, empresas, usuario, onGuardado, onCancelar }) => {
+const UsuarioForm = ({ esSuperAdmin, empresas, usuario, esUsuarioActual, onGuardado, onCancelar }) => {
     const esEdicion = !!usuario;
     const [nombre, setNombre] = useState(usuario?.nombre || '');
     const [email, setEmail] = useState(usuario?.email || '');
     const [password, setPassword] = useState('');
+    const [telegramId, setTelegramId] = useState(usuario?.telegram_id ?? '');
     const [rol, setRol] = useState(usuario?.rol || 'empleado');
     const [empresaId, setEmpresaId] = useState(usuario?.empresa_id ?? (empresas[0]?.id ?? ''));
     const [activo, setActivo] = useState(usuario?.activo ?? true);
@@ -207,6 +218,13 @@ const UsuarioForm = ({ esSuperAdmin, empresas, usuario, onGuardado, onCancelar }
         try {
             const base = { nombre, email, rol };
             if (requiereEmpresa) base.empresa_id = empresaId || null;
+
+            // ID numérico de Telegram (no el @usuario). Si queda vacío no se
+            // manda: en edición equivale a "no tocar"; en creación, el
+            // usuario queda pendiente de vincular después.
+            const telegramIdValor = telegramId.toString().trim();
+            const telegramIdNumerico = telegramIdValor ? Number(telegramIdValor) : undefined;
+            if (telegramIdNumerico !== undefined) base.telegram_id = telegramIdNumerico;
 
             if (esEdicion) {
                 const cambios = { ...base, activo };
@@ -259,12 +277,35 @@ const UsuarioForm = ({ esSuperAdmin, empresas, usuario, onGuardado, onCancelar }
                     />
                 </div>
                 <div>
+                    <label className="form-label">ID de Telegram (opcional)</label>
+                    <input
+                        type="number"
+                        className="input-field"
+                        placeholder="Ej. 123456789 — obtenido con @userinfobot"
+                        value={telegramId}
+                        onChange={(e) => setTelegramId(e.target.value)}
+                    />
+                    <p className="text-xs text-secondary mt-1">
+                        Sin este dato, el usuario puede entrar al panel web pero el bot de Telegram no le va a responder.
+                    </p>
+                </div>
+                <div>
                     <label className="form-label">Rol</label>
-                    <select className="input-field" value={rol} onChange={(e) => setRol(e.target.value)}>
+                    <select
+                        className="input-field"
+                        value={rol}
+                        onChange={(e) => setRol(e.target.value)}
+                        disabled={esUsuarioActual}
+                    >
                         <option value="empleado">Empleado</option>
                         <option value="admin">Administrador</option>
                         {esSuperAdmin && <option value="super_admin">Super Admin</option>}
                     </select>
+                    {esUsuarioActual && (
+                        <p className="text-xs text-secondary mt-1">
+                            No puedes cambiar tu propio rol. Pídele a otro administrador que lo haga.
+                        </p>
+                    )}
                 </div>
 
                 {/* Solo super_admin elige la empresa: un admin normal siempre
@@ -285,9 +326,19 @@ const UsuarioForm = ({ esSuperAdmin, empresas, usuario, onGuardado, onCancelar }
 
                 {esEdicion && (
                     <div className="flex items-center gap-3">
-                        <Switch checked={activo} onChange={setActivo} ariaLabel="Usuario activo" />
+                        <Switch
+                            checked={activo}
+                            onChange={setActivo}
+                            disabled={esUsuarioActual}
+                            ariaLabel="Usuario activo"
+                        />
                         <span className="text-sm">Usuario activo</span>
                     </div>
+                )}
+                {esEdicion && esUsuarioActual && (
+                    <p className="text-xs text-secondary" style={{ marginTop: -8 }}>
+                        No puedes desactivar tu propio usuario.
+                    </p>
                 )}
 
                 {error && <p className="text-sm" style={{ color: 'var(--danger, #e11d48)' }}>{error}</p>}
