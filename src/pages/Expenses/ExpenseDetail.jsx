@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, Save, AlertTriangle, FileText, Image as ImageIcon, Mic, Plus } from 'lucide-react';
-import { expensesMock } from '../../mocks/expensesData';
+import { apiFetch } from '../../utils/api';
+import { mapearGasto } from '../../hooks/useExpenses';
 import ConfidenceBadge from '../../components/Expenses/ConfidenceBadge';
 import './ExpenseDetail.css';
 
@@ -10,25 +11,64 @@ const ExpenseDetail = () => {
   const navigate = useNavigate();
   const [expense, setExpense] = useState(null);
   const [formData, setFormData] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
-  useEffect(() => {
-    const data = expensesMock.find(e => e.id === id);
-    if (data) {
-      setExpense(data);
-      setFormData(data);
-    }
-  }, [id]);
+  const cargar = () => {
+    setCargando(true);
+    setError('');
+    apiFetch(`/gastos/${id}`)
+      .then((data) => {
+        const gasto = mapearGasto(data);
+        setExpense(gasto);
+        setFormData(gasto);
+      })
+      .catch((err) => setError(err.message || 'Error cargando el gasto'))
+      .finally(() => setCargando(false));
+  };
 
-  if (!expense) return <div style={{ padding: '2rem' }}>Cargando...</div>;
+  useEffect(cargar, [id]);
+
+  if (cargando) return <div style={{ padding: '2rem' }}>Cargando...</div>;
+
+  if (error) {
+    return (
+      <div style={{ padding: '2rem' }}>
+        <p className="text-sm" style={{ color: 'var(--accent-danger)', marginBottom: '1rem' }}>{error}</p>
+        <button className="btn btn-outline" onClick={cargar}>Reintentar</button>
+      </div>
+    );
+  }
+
+  if (!expense) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    alert('Datos guardados/confirmados simulados');
-    navigate('/gastos');
+  const handleSave = async () => {
+    setGuardando(true);
+    setError('');
+    try {
+      // Proveedor/Categoría quedan de solo lectura por ahora: el backend
+      // todavía no tiene CRUD de Proveedores/Categorías (pendiente, ver
+      // PROGRESO_SIREGG Paso 20), así que no hay de dónde sacar el
+      // categoria_id/proveedor_id real para guardar ese cambio.
+      await apiFetch(`/gastos/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          monto: Number(formData.amount),
+          es_personal: formData.type === 'Personal',
+        }),
+      });
+      navigate('/gastos');
+    } catch (err) {
+      setError(err.message || 'Error guardando el gasto');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -134,10 +174,11 @@ const ExpenseDetail = () => {
                         <div className="audio-icon"><Mic size={22} /></div>
                         <h4 className="font-semibold text-sm">Audio Original</h4>
                       </div>
-                      <div className="card transcription-card">
-                        <h5 className="transcription-label">Transcripción de IA</h5>
-                        <p className="transcription-text">"{ev.transcripcion}"</p>
-                      </div>
+                      {ev.url ? (
+                        <audio controls src={ev.url} style={{ width: '100%', marginTop: '0.5rem' }} />
+                      ) : (
+                        <p className="text-sm text-muted">Audio no disponible</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -164,13 +205,13 @@ const ExpenseDetail = () => {
               </div>
               <div>
                 <label className="form-label">Medio de Pago</label>
-                <input type="text" name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="input-field" />
+                <input type="text" value={formData.paymentMethod || 'Sin registrar'} disabled className="input-field" />
               </div>
             </div>
 
             <div>
               <label className="form-label">Proveedor</label>
-              <input type="text" name="provider" value={formData.provider || ''} onChange={handleChange} className="input-field" placeholder="Sin identificar" />
+              <input type="text" value={formData.provider || 'Sin identificar'} disabled className="input-field" />
             </div>
 
             <div className="form-row">
@@ -183,23 +224,19 @@ const ExpenseDetail = () => {
               </div>
               <div>
                 <label className="form-label">Categoría</label>
-                <input type="text" name="category" value={formData.category} onChange={handleChange} className="input-field" />
+                <input type="text" value={formData.category || 'Sin categoría'} disabled className="input-field" />
               </div>
             </div>
 
-            {formData.type === 'Empresa' && (
-              <div>
-                <label className="form-label">Proyecto / Pedido asociado</label>
-                <input type="text" name="project" value={formData.project || ''} onChange={handleChange} className="input-field" placeholder="Ej. Pedido Dragon o Producción General" />
-              </div>
-            )}
           </div>
 
+          {error && <p className="text-sm" style={{ color: 'var(--accent-danger)' }}>{error}</p>}
+
           <div className="form-actions">
-            <button className="btn btn-outline" onClick={() => navigate('/gastos')}>Cancelar</button>
-            <button className="btn btn-primary" onClick={handleSave}>
+            <button className="btn btn-outline" onClick={() => navigate('/gastos')} disabled={guardando}>Cancelar</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={guardando}>
               {expense.status === 'Aprobado' ? <Save size={18} /> : <Check size={18} />}
-              {expense.status === 'Aprobado' ? 'Guardar Cambios' : 'Confirmar Gasto'}
+              {guardando ? 'Guardando...' : expense.status === 'Aprobado' ? 'Guardar Cambios' : 'Confirmar Gasto'}
             </button>
           </div>
         </div>

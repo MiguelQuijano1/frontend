@@ -18,7 +18,7 @@ function filtroAQuery(filter) {
 // proveedores, comprobantes, pagos). Esto la traduce a la forma que ya
 // esperan ExpenseTable/ExpenseDetail (antes alimentados por el mock), para
 // no tener que tocar esos componentes.
-function mapearGasto(g) {
+export function mapearGasto(g) {
     let status = 'Aprobado';
     if (g.posible_duplicado_de) status = 'Posible Duplicado';
     else if (g.pendiente_revision) status = 'Requiere Revisión';
@@ -43,8 +43,15 @@ function mapearGasto(g) {
         status,
         confidence: g.confianza ? confidenceLabel[g.confianza] || g.confianza : null,
         comprobantes: g.comprobantes || [],
-        pagos: g.pagos || [],
-        evidencias: g.evidencias || [],
+        pagos: (g.pagos || []).map((p) => ({ ...p, referencia: p.numero_operacion })),
+        // 'imagen'/'pdf' -> 'image' para que ExpenseDetail los muestre igual;
+        // la transcripción de audio no se persiste hoy (solo viaja en el
+        // momento de la extracción, ver Paso 3 de PROGRESO_SIREGG), así que
+        // no llega acá.
+        evidencias: (g.evidencias || []).map((ev) => ({
+            ...ev,
+            tipo: ev.tipo === 'audio' ? 'audio' : 'image',
+        })),
     };
 }
 
