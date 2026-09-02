@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { UserPlus, Pencil, Trash2, X } from 'lucide-react';
 import { apiFetch } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
+import Switch from '../../components/ui/Switch';
+import Modal from '../../components/ui/Modal';
 
 const roleLabel = {
     super_admin: 'Super Admin',
@@ -18,6 +20,7 @@ const roleColor = {
 const UserList = () => {
     const { esSuperAdmin, usuario: usuarioActual } = useAuth();
     const [usuarios, setUsuarios] = useState([]);
+    const [empresas, setEmpresas] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState('');
     const [mostrarForm, setMostrarForm] = useState(false);
@@ -31,7 +34,30 @@ const UserList = () => {
             .finally(() => setCargando(false));
     };
 
-    useEffect(cargarUsuarios, []);
+    useEffect(() => {
+        cargarUsuarios();
+        // Solo un super_admin puede ver más de una empresa, y solo él
+        // necesita el selector de empresa al crear/editar usuarios.
+        if (esSuperAdmin) {
+            apiFetch('/empresas').then(setEmpresas).catch(() => { });
+        }
+    }, [esSuperAdmin]);
+
+    const nombreEmpresa = (empresaId) => empresas.find((e) => e.id === empresaId)?.nombre;
+
+    const cambiarActivo = async (u, nuevoValor) => {
+        setError('');
+        setUsuarios((prev) => prev.map((x) => (x.id === u.id ? { ...x, activo: nuevoValor } : x)));
+        try {
+            await apiFetch(`/usuarios/${u.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ activo: nuevoValor }),
+            });
+        } catch (err) {
+            setError(err.message);
+            cargarUsuarios(); // revertir si falló
+        }
+    };
 
     const eliminarUsuario = async (u) => {
         if (u.id === usuarioActual?.id) {
@@ -72,19 +98,22 @@ const UserList = () => {
             </div>
 
             {(mostrarForm || editando) && (
-                <UsuarioForm
-                    esSuperAdmin={esSuperAdmin}
-                    usuario={editando}
-                    onGuardado={() => {
-                        setMostrarForm(false);
-                        setEditando(null);
-                        cargarUsuarios();
-                    }}
-                    onCancelar={() => {
-                        setMostrarForm(false);
-                        setEditando(null);
-                    }}
-                />
+                <Modal onClose={() => { setMostrarForm(false); setEditando(null); }}>
+                    <UsuarioForm
+                        esSuperAdmin={esSuperAdmin}
+                        empresas={empresas}
+                        usuario={editando}
+                        onGuardado={() => {
+                            setMostrarForm(false);
+                            setEditando(null);
+                            cargarUsuarios();
+                        }}
+                        onCancelar={() => {
+                            setMostrarForm(false);
+                            setEditando(null);
+                        }}
+                    />
+                </Modal>
             )}
 
             {error && (
@@ -98,25 +127,33 @@ const UserList = () => {
                             <th>Nombre</th>
                             <th>Correo</th>
                             <th>Rol</th>
-                            <th>Estado</th>
+                            {esSuperAdmin && <th>Empresa</th>}
+                            <th>Activo</th>
                             <th style={{ width: 90 }}></th>
                         </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
-                            <tr><td colSpan={5} className="text-secondary text-center">Cargando…</td></tr>
+                            <tr><td colSpan={esSuperAdmin ? 6 : 5} className="text-secondary text-center">Cargando…</td></tr>
                         ) : usuarios.length === 0 ? (
-                            <tr><td colSpan={5} className="text-secondary text-center">No hay usuarios registrados</td></tr>
+                            <tr><td colSpan={esSuperAdmin ? 6 : 5} className="text-secondary text-center">No hay usuarios registrados</td></tr>
                         ) : (
                             usuarios.map((u) => (
                                 <tr key={u.id}>
                                     <td className="font-medium">{u.nombre || '—'}</td>
                                     <td className="text-secondary">{u.email || '—'}</td>
                                     <td><span className={`badge ${roleColor[u.rol] || 'badge-neutral'}`}>{roleLabel[u.rol] || u.rol}</span></td>
+                                    {esSuperAdmin && (
+                                        <td className="text-secondary">
+                                            {u.rol === 'super_admin' ? 'Todas' : (nombreEmpresa(u.empresa_id) || '—')}
+                                        </td>
+                                    )}
                                     <td>
-                                        <span className={`badge ${u.activo ? 'badge-success' : 'badge-danger'}`}>
-                                            {u.activo ? 'Activo' : 'Desactivado'}
-                                        </span>
+                                        <Switch
+                                            checked={u.activo}
+                                            onChange={(nuevoValor) => cambiarActivo(u, nuevoValor)}
+                                            ariaLabel={`Usuario ${u.nombre || u.email} activo`}
+                                        />
                                     </td>
                                     <td>
                                         <div className="flex items-center gap-2 justify-end">
@@ -147,25 +184,32 @@ const UserList = () => {
 
 // Formulario único para crear o editar (según si `usuario` viene con datos).
 // Un admin de empresa solo puede crear/editar empleados o admins de su
-// propia empresa (el backend lo re-valida igual); un super_admin además
-// puede otorgar el rol super_admin.
-const UsuarioForm = ({ esSuperAdmin, usuario, onGuardado, onCancelar }) => {
+// propia empresa (el backend lo re-valida igual, forzando su empresa_id);
+// un super_admin además puede otorgar el rol super_admin y elegir a qué
+// empresa asignar el nuevo admin/empleado.
+const UsuarioForm = ({ esSuperAdmin, empresas, usuario, onGuardado, onCancelar }) => {
     const esEdicion = !!usuario;
     const [nombre, setNombre] = useState(usuario?.nombre || '');
     const [email, setEmail] = useState(usuario?.email || '');
     const [password, setPassword] = useState('');
     const [rol, setRol] = useState(usuario?.rol || 'empleado');
+    const [empresaId, setEmpresaId] = useState(usuario?.empresa_id ?? (empresas[0]?.id ?? ''));
     const [activo, setActivo] = useState(usuario?.activo ?? true);
     const [enviando, setEnviando] = useState(false);
     const [error, setError] = useState('');
+
+    const requiereEmpresa = esSuperAdmin && rol !== 'super_admin';
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setEnviando(true);
         try {
+            const base = { nombre, email, rol };
+            if (requiereEmpresa) base.empresa_id = empresaId || null;
+
             if (esEdicion) {
-                const cambios = { nombre, email, rol, activo };
+                const cambios = { ...base, activo };
                 if (password) cambios.password = password;
                 await apiFetch(`/usuarios/${usuario.id}`, {
                     method: 'PATCH',
@@ -174,7 +218,7 @@ const UsuarioForm = ({ esSuperAdmin, usuario, onGuardado, onCancelar }) => {
             } else {
                 await apiFetch('/usuarios', {
                     method: 'POST',
-                    body: JSON.stringify({ nombre, email, password, rol }),
+                    body: JSON.stringify({ ...base, password }),
                 });
             }
             onGuardado();
@@ -223,11 +267,27 @@ const UsuarioForm = ({ esSuperAdmin, usuario, onGuardado, onCancelar }) => {
                     </select>
                 </div>
 
+                {/* Solo super_admin elige la empresa: un admin normal siempre
+                    crea/edita dentro de la suya (el backend la fuerza). Un
+                    super_admin no tiene empresa (ve todas), así que este
+                    selector no aplica si el rol elegido es super_admin. */}
+                {requiereEmpresa && (
+                    <div>
+                        <label className="form-label">Empresa</label>
+                        <select className="input-field" value={empresaId} onChange={(e) => setEmpresaId(Number(e.target.value))} required>
+                            <option value="" disabled>Selecciona una empresa</option>
+                            {empresas.map((emp) => (
+                                <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 {esEdicion && (
-                    <label className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} />
-                        Usuario activo
-                    </label>
+                    <div className="flex items-center gap-3">
+                        <Switch checked={activo} onChange={setActivo} ariaLabel="Usuario activo" />
+                        <span className="text-sm">Usuario activo</span>
+                    </div>
                 )}
 
                 {error && <p className="text-sm" style={{ color: 'var(--danger, #e11d48)' }}>{error}</p>}

@@ -22,9 +22,10 @@ export function clearToken() {
 // backend cuando la respuesta no es 2xx.
 export async function apiFetch(path, options = {}) {
     const token = getToken();
+    const esFormData = options.body instanceof FormData;
 
     const headers = {
-        'Content-Type': 'application/json',
+        ...(esFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(options.headers || {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
