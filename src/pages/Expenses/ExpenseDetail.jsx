@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Save, AlertTriangle, FileText, Image as ImageIcon, Mi
 import { apiFetch } from '../../utils/api';
 import { mapearGasto } from '../../hooks/useExpenses';
 import ConfidenceBadge from '../../components/Expenses/ConfidenceBadge';
+import Modal from '../../components/ui/Modal';
 import './ExpenseDetail.css';
 
 const ExpenseDetail = () => {
@@ -14,6 +15,18 @@ const ExpenseDetail = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [categorias, setCategorias] = useState([]);
+  const [mostrarModalPago, setMostrarModalPago] = useState(false);
+  const [pagoForm, setPagoForm] = useState({ medio: 'yape', numero_operacion: '', monto: '' });
+  const [pagoImagen, setPagoImagen] = useState(null);
+  const [guardandoPago, setGuardandoPago] = useState(false);
+  const [errorPago, setErrorPago] = useState('');
+
+  useEffect(() => {
+    apiFetch('/categorias')
+      .then((data) => setCategorias(data || []))
+      .catch(() => setCategorias([])); // si falla, el <select> queda vacío pero no bloquea el resto del panel
+  }, []);
 
   const cargar = () => {
     setCargando(true);
@@ -48,26 +61,79 @@ const ExpenseDetail = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleCategoryChange = (e) => {
+    const categoriaId = e.target.value ? Number(e.target.value) : null;
+    const nombre = categorias.find(c => c.id === categoriaId)?.nombre || null;
+    setFormData(prev => ({ ...prev, categoryId: categoriaId, category: nombre }));
+  };
+
   const handleSave = async () => {
     setGuardando(true);
     setError('');
     try {
-      // Proveedor/Categoría quedan de solo lectura por ahora: el backend
-      // todavía no tiene CRUD de Proveedores/Categorías (pendiente, ver
-      // PROGRESO_SIREGG Paso 20), así que no hay de dónde sacar el
-      // categoria_id/proveedor_id real para guardar ese cambio.
+      // Proveedor queda de solo lectura por ahora: el backend todavía no
+      // expone un <select> de proveedores (no hay GET /proveedores), así
+      // que no hay de dónde elegir un proveedor_id distinto al que ya
+      // trae el gasto. Categoría sí es editable desde acá (GET /categorias).
+      const body = {
+        monto: Number(formData.amount),
+        es_personal: formData.type === 'Personal',
+      };
+      if (formData.categoryId !== undefined && formData.categoryId !== null) {
+        body.categoria_id = formData.categoryId;
+      }
       await apiFetch(`/gastos/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          monto: Number(formData.amount),
-          es_personal: formData.type === 'Personal',
-        }),
+        body: JSON.stringify(body),
       });
       navigate('/gastos');
     } catch (err) {
       setError(err.message || 'Error guardando el gasto');
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const abrirModalPago = () => {
+    setPagoForm({ medio: 'yape', numero_operacion: '', monto: '' });
+    setPagoImagen(null);
+    setErrorPago('');
+    setMostrarModalPago(true);
+  };
+
+  const handlePagoChange = (e) => {
+    const { name, value } = e.target;
+    setPagoForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleGuardarPago = async () => {
+    setGuardandoPago(true);
+    setErrorPago('');
+    try {
+      await apiFetch(`/gastos/${id}/pago`, {
+        method: 'POST',
+        body: JSON.stringify({
+          medio: pagoForm.medio,
+          numero_operacion: pagoForm.numero_operacion || null,
+          monto: pagoForm.monto ? Number(pagoForm.monto) : null,
+        }),
+      });
+      // La imagen (ej. captura de Yape) es un paso aparte: se sube como
+      // evidencia del gasto, no forma parte de la fila de `pagos`.
+      if (pagoImagen) {
+        const formDataImagen = new FormData();
+        formDataImagen.append('file', pagoImagen);
+        await apiFetch(`/gastos/${id}/evidencia`, {
+          method: 'POST',
+          body: formDataImagen,
+        });
+      }
+      setMostrarModalPago(false);
+      cargar(); // refresca Pagos, Evidencias y el gasto con lo nuevo
+    } catch (err) {
+      setErrorPago(err.message || 'Error guardando el pago');
+    } finally {
+      setGuardandoPago(false);
     }
   };
 
@@ -124,7 +190,7 @@ const ExpenseDetail = () => {
           <div className="card">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Pagos</h3>
-              <button className="btn btn-outline text-sm" style={{ padding: '0.35rem 0.75rem' }}>
+              <button className="btn btn-outline text-sm" style={{ padding: '0.35rem 0.75rem' }} onClick={abrirModalPago}>
                 <Plus size={14} /> Añadir
               </button>
             </div>
@@ -224,7 +290,17 @@ const ExpenseDetail = () => {
               </div>
               <div>
                 <label className="form-label">Categoría</label>
-                <input type="text" value={formData.category || 'Sin categoría'} disabled className="input-field" />
+                <select
+                  name="categoryId"
+                  value={formData.categoryId ?? ''}
+                  onChange={handleCategoryChange}
+                  className="input-field"
+                >
+                  <option value="">Sin categoría</option>
+                  {categorias.map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -241,6 +317,73 @@ const ExpenseDetail = () => {
           </div>
         </div>
       </div>
+
+      {mostrarModalPago && (
+        <Modal onClose={() => setMostrarModalPago(false)}>
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">Añadir Pago</h3>
+
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="form-label">Medio de Pago</label>
+                <select name="medio" value={pagoForm.medio} onChange={handlePagoChange} className="input-field">
+                  <option value="yape">Yape</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="efectivo">Efectivo</option>
+                  <option value="tarjeta">Tarjeta</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">N° de Operación (opcional)</label>
+                <input
+                  type="text"
+                  name="numero_operacion"
+                  value={pagoForm.numero_operacion}
+                  onChange={handlePagoChange}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Monto (opcional)</label>
+                <div className="amount-input-wrap">
+                  <span className="amount-currency">{expense.currency}</span>
+                  <input
+                    type="number"
+                    name="monto"
+                    value={pagoForm.monto}
+                    onChange={handlePagoChange}
+                    className="input-field amount-input"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label">Captura de pago (opcional)</label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setPagoImagen(e.target.files?.[0] || null)}
+                  className="input-field"
+                />
+              </div>
+
+              {errorPago && <p className="text-sm" style={{ color: 'var(--accent-danger)' }}>{errorPago}</p>}
+
+              <div className="form-actions">
+                <button className="btn btn-outline" onClick={() => setMostrarModalPago(false)} disabled={guardandoPago}>
+                  Cancelar
+                </button>
+                <button className="btn btn-primary" onClick={handleGuardarPago} disabled={guardandoPago}>
+                  {guardandoPago ? 'Guardando...' : 'Guardar Pago'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

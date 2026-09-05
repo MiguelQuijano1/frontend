@@ -33,10 +33,12 @@ export function mapearGasto(g) {
         channel: 'Telegram',
         type: g.es_personal ? 'Personal' : 'Empresa',
         category: g.categorias?.nombre || null,
+        categoryId: g.categoria_id ?? null,
         // Pedidos/proyectos (RF-11) todavía no existe -- siempre null hasta
         // que exista esa tabla y el join correspondiente.
         project: null,
         provider: g.proveedores?.nombre || g.descripcion || 'Sin proveedor',
+        providerId: g.proveedor_id ?? null,
         amount: Number(g.monto) || 0,
         currency: 'S/',
         paymentMethod: g.pagos?.[0]?.medio || null,
